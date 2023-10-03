@@ -1,5 +1,6 @@
 # Test cases
 ## Logrotate
+`logrotate -s $PWD/meow logrotatevault.conf` worked IIRC?
 ### logrotate copy
 ### logrotate move
 ## Vault HUP (file close and open?)
