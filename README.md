@@ -1,4 +1,5 @@
 # Test cases
+Use data in `tests/*.json`
 ## Logrotate
 `logrotate -s $PWD/meow logrotatevault.conf` worked IIRC?
 ### logrotate copy

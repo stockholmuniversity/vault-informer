@@ -1,0 +1,47 @@
+{
+    "time": "2023-10-23T13:37:00.086574704Z",
+    "type": "response",
+    "auth": {
+        "client_token": "hmac-sha256:10563a40f14bac0bba04e1391df120d1599fec4c6d26c509ec3e271c51d89b96",
+        "accessor": "hmac-sha256:179660bd689aab2f1c5c4aa990c89f08f62facfff805ad144261517d69d53dad",
+        "display_name": "approle",
+        "policies": [
+            "some",
+            "policies",
+            "default"
+        ],
+        "token_policies": [
+            "some",
+            "policies",
+            "default"
+        ],
+        "metadata": {
+            "role_name": "some_role"
+        },
+        "entity_id": "8aa83e8c-f7b4-44ad-adda-64e68ea23d1f",
+        "token_type": "service",
+        "token_ttl": 2764800,
+        "token_issue_time": "2023-10-22T13:37:00+02:00"
+    },
+    "request": {
+        "id": "1e62b163-47ec-45d8-95d6-54bf50236ba9",
+        "operation": "update",
+        "mount_type": "kv",
+        "client_token": "hmac-sha256:6e6e4f9af40745c8046cdb197989d2afa7ce9f4dfeea269735eea4d87b8d722f",
+        "client_token_accessor": "hmac-sha256:865af57fe7b040668ee915f9a150703f12fae9ca9a7282b6d6d936e14da015cf",
+        "namespace": {
+            "id": "root"
+        },
+        "path": "secret/some/system/ssl/example.com.pem",
+        "data": {
+            "key": "hmac-sha256:5ede6799e8cd0edace125beba88c9992c46306c7df04ba24a3dba79789d45e1b",
+            "pwd": "hmac-sha256:21646d167918f31835b280f19d47999847cb69ddcd7616be7e32c06c2ab3a81b",
+            "userName": "hmac-sha256:c4f3017acc413af2d06f2fdd5de050bb478bd422a1cc53cac559cf6c9c469d52"
+        },
+        "remote_address": "192.0.2.1",
+        "remote_port": 1337
+    },
+    "response": {
+        "mount_type": "kv"
+    }
+}
