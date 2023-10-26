@@ -35,6 +35,28 @@ class EventHandler(pyinotify.ProcessEvent):
             f.seek(0, os.SEEK_END)
             self.last_position = f.tell()
 
+    def process_line(self, line):
+        self.buffered_line += line.strip()
+        self.open_braces += line.count("{")
+        self.close_braces += line.count("}")
+
+        if self.open_braces == self.close_braces and self.open_braces > 0:
+            try:
+                vault_log_entry = json.loads(self.buffered_line)
+                logline = read_logline(vault_log_entry)
+                if logline is not None:
+                    print("Log line: {}".format(logline))
+                    message = json.dumps(logline)
+                    self.plugin.produce_msg(message)
+                self.buffered_line = ""
+                self.open_braces = 0
+                self.close_braces = 0
+            except json.JSONDecodeError:
+                logging.error("Could not decode line: %s", self.buffered_line)
+                self.buffered_line = ""
+                self.open_braces = 0
+                self.close_braces = 0
+
     def process_IN_MOVE_SELF(self, event):
         if event.pathname == self.file_name:
             logging.info("Log file rotated")
@@ -52,30 +74,16 @@ class EventHandler(pyinotify.ProcessEvent):
                     if not line:
                         break
                     self.last_position = f.tell()
+                    self.process_line(line)
 
-                    self.buffered_line += line.strip()
-                    self.open_braces += line.count("{")
-                    self.close_braces += line.count("}")
-
-                    if self.open_braces == self.close_braces and self.open_braces > 0:
-                        try:
-                            vault_log_entry = json.loads(self.buffered_line)
-                            logline = read_logline(vault_log_entry)
-                            if logline is not None:
-                                print("Log line: {}".format(logline))
-                                message = json.dumps(logline)
-                                self.plugin.produce_msg(message)
-                            self.buffered_line = ""
-                            self.open_braces = 0
-                            self.close_braces = 0
-
-                        except json.JSONDecodeError:
-                            logging.error(
-                                "Could not decode line: %s", self.buffered_line
-                            )
-                            self.buffered_line = ""
-                            self.open_braces = 0
-                            self.close_braces = 0
+    def process_IN_CREATE(self, event):
+        if event.pathname == self.file_name:
+            logging.info("Log file created")
+            with open(self.file_name, "r", encoding="utf-8") as f:
+                for line in f.readlines():
+                    self.process_line(line)
+                f.seek(0, os.SEEK_END)
+                self.last_position = f.tell()
 
 
 def discover_plugins():
