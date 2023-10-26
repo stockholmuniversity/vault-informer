@@ -2,9 +2,10 @@ FROM jenkins-agent/stretch
 
 RUN apt-get update && \
     apt-get install -y \
-				docker.io \
+				sua-docker-ce \ 
                 # poetry depends on that the python executable exists...
-				python-is-python3 \
 				python3-dev \
 				python3-pip \
     && rm -rf /var/lib/apt/lists/*
+
+RUN ln -s /usr/bin/python3 /usr/bin/python
