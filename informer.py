@@ -22,16 +22,16 @@ log = logging.getLogger(__name__)
 
 
 class EventHandler(pyinotify.ProcessEvent):
-    def __init__(self, file_name, plugin):
+    def __init__(self, file_path, plugin):
         super().__init__()
-        self.file_name = file_name
+        self.file_path = file_path
         self.plugin = plugin
         self.buffered_line = ""
         self.open_braces = 0
         self.close_braces = 0
         self.last_position = 0
 
-        with open(self.file_name, "r", encoding="utf-8") as f:
+        with open(self.file_path, "r", encoding="utf-8") as f:
             f.seek(0, os.SEEK_END)
             self.last_position = f.tell()
 
@@ -58,7 +58,7 @@ class EventHandler(pyinotify.ProcessEvent):
                 self.close_braces = 0
 
     def process_IN_MOVE_SELF(self, event):
-        if event.pathname == self.file_name:
+        if event.pathname == self.file_path:
             logging.info("Log file rotated")
             self.last_position = 0
             self.buffered_line = ""
@@ -66,8 +66,8 @@ class EventHandler(pyinotify.ProcessEvent):
             self.close_braces = 0
 
     def process_IN_MODIFY(self, event):
-        if event.pathname == self.file_name:
-            with open(self.file_name, "r", encoding="utf-8") as f:
+        if event.pathname == self.file_path:
+            with open(self.file_path, "r", encoding="utf-8") as f:
                 f.seek(self.last_position)
                 while True:
                     line = f.readline()
@@ -77,9 +77,9 @@ class EventHandler(pyinotify.ProcessEvent):
                     self.process_line(line)
 
     def process_IN_CREATE(self, event):
-        if event.pathname == self.file_name:
+        if event.pathname == self.file_path:
             logging.info("Log file created")
-            with open(self.file_name, "r", encoding="utf-8") as f:
+            with open(self.file_path, "r", encoding="utf-8") as f:
                 for line in f.readlines():
                     self.process_line(line)
                 f.seek(0, os.SEEK_END)
