@@ -1,127 +1,202 @@
-#!/usr/bin/env python3
+import getopt
+import importlib
+import json
+import logging
 import os
+import pkgutil
 import sys
-from optparse import OptionParser
-from pathlib import Path
 
 import pyinotify
 
+from plugins import MessageBusPlugin
 
-class TailF:
-    def __init__(self, path: Path):
-        self.path = path
+# Default vault audit log file.
+VAULT_AUDIT_LOGFILE = "/local/vault/logs/audit.log"
 
-    def __iter__(self):
-        self.a = 1
-        return self
-
-    def __next__(self):
-        x = self.a
-        self.a += 1
-        return x
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger(__name__)
 
 
-def main():
-    parser = OptionParser()
-    parser.add_option(
-        "--debug", help="print debug messages", action="store_true", dest="debug"
-    )
-    (options, args) = parser.parse_args()
+class EventHandler(pyinotify.ProcessEvent):
+    def __init__(self, file_name, plugin):
+        super().__init__()
+        self.file_name = file_name
+        self.plugin = plugin
+        self.buffered_line = ""
+        self.open_braces = 0
+        self.close_braces = 0
+        self.last_position = 0
 
-    myfile = args[0]
-    if options.debug:
-        print("I am totally opening " + myfile)
+        with open(self.file_name, "r", encoding="utf-8") as f:
+            f.seek(0, os.SEEK_END)
+            self.last_position = f.tell()
+
+    def process_IN_MOVE_SELF(self, event):
+        if event.pathname == self.file_name:
+            logging.info("Log file rotated")
+            self.last_position = 0
+            self.buffered_line = ""
+            self.open_braces = 0
+            self.close_braces = 0
+
+    def process_IN_MODIFY(self, event):
+        if event.pathname == self.file_name:
+            with open(self.file_name, "r", encoding="utf-8") as f:
+                f.seek(self.last_position)
+                while True:
+                    line = f.readline()
+                    if not line:
+                        break
+                    self.last_position = f.tell()
+
+                    self.buffered_line += line.strip()
+                    self.open_braces += line.count("{")
+                    self.close_braces += line.count("}")
+
+                    if self.open_braces == self.close_braces and self.open_braces > 0:
+                        try:
+                            vault_log_entry = json.loads(self.buffered_line)
+                            logline = read_logline(vault_log_entry)
+                            if logline is not None:
+                                print("Log line: {}".format(logline))
+                                message = json.dumps(logline)
+                                self.plugin.produce_msg(message)
+                            self.buffered_line = ""
+                            self.open_braces = 0
+                            self.close_braces = 0
+
+                        except json.JSONDecodeError:
+                            logging.error(
+                                "Could not decode line: %s", self.buffered_line
+                            )
+                            self.buffered_line = ""
+                            self.open_braces = 0
+                            self.close_braces = 0
+
+
+def discover_plugins():
+    plugins = {}
+    package_name = "plugins"
+
+    for _, module_name, _ in pkgutil.iter_modules([package_name]):
+        module = importlib.import_module("{}.{}".format(package_name, module_name))
+
+        for _, cls in module.__dict__.items():
+            if (
+                isinstance(cls, type)
+                and issubclass(cls, MessageBusPlugin)
+                and cls is not MessageBusPlugin
+            ):
+                plugins[module_name] = cls()
+
+    return plugins
+
+
+def filter_sensitive_data(data):
+    if isinstance(data, str):
+        if data.lower().startswith("hmac"):
+            return "REDACTED"
+        return data
+
+    if isinstance(data, dict):
+        return {key: filter_sensitive_data(value) for key, value in data.items()}
+
+    if isinstance(data, list):
+        return [filter_sensitive_data(item) for item in data]
+
+    return data
+
+
+def read_logline(logline):
+    try:
+        if not isinstance(logline, dict):
+            raise ValueError("Input must be a dictionary.")
+
+        if logline["type"] == "request":
+            if logline["request"]["operation"] in ["update", "create", "delete"]:
+                error_status = logline.get("error", None)
+                if error_status is None:
+                    logline = filter_sensitive_data(logline)
+                    return logline
+
+        return None
+    except ValueError as ve:
+        print("An error occurred: {}".format(ve))
+        return None
+    # pylint: disable=W0703
+    except Exception as e:
+        print("An unexpected error occurred: {}".format(e))
+        return None
+
+
+def watch_messages(file_path, plugin):
+    file_dir = os.path.dirname(file_path)
 
     wm = pyinotify.WatchManager()
+    handler = EventHandler(file_path, plugin)
+    notifier = pyinotify.Notifier(wm, default_proc_fun=handler)
 
-    # watched events on the directory, and parse $path for file_of_interest:
-    dirmask = (
-        pyinotify.IN_MODIFY
-        | pyinotify.IN_DELETE
-        | pyinotify.IN_MOVE_SELF
-        | pyinotify.IN_CREATE
-    )
+    # pylint: disable=E1101
+    mask = pyinotify.IN_MODIFY | pyinotify.IN_MOVE_SELF
+    wm.add_watch(file_dir, mask)
 
-    dirmask = pyinotify.ALL_EVENTS
+    try:
+        notifier.loop()
+    finally:
+        notifier.stop()
 
-    # open file, skip to end..
-    # global fh
-    # fh = open(myfile, "r")
-    # fh.seek(0, 2)
 
-    import subprocess
+def main(argv):
+    short_options = "hlp:f:"
+    long_options = ["help", "list-plugins", "plugin=", "filename="]
+    plugin_to_use = None
+    vault_audit_logfile = VAULT_AUDIT_LOGFILE
 
-    import pyinotify
+    try:
+        arguments, _ = getopt.getopt(argv, short_options, long_options)
+    except getopt.error as err:
+        print(str(err))
+        sys.exit(2)
 
-    def onChange(ev):
-        # if not ev.dir and ev.name.startswith("gurken"):
-        print("%r" % ev)
+    # If no arguments are provided, display the help text
+    if not arguments:
+        print("Usage: python main.py --plugin <plugin_name> [--list-plugins]")
+        sys.exit()
 
-    wm = pyinotify.WatchManager()
-    wm.add_watch("/home/simlu/scm/vault-informer", dirmask, onChange)
-    notifier = pyinotify.Notifier(wm)
-    notifier.loop()
-    sys.exit(0)
+    available_plugins = discover_plugins()
 
-    # the event handlers:
-    class PTmp(pyinotify.ProcessEvent):
-        def process_ALL_EVENTS(self, event):
-            print("ALL: %s" % event.maskname)
+    for current_argument, current_value in arguments:
+        if current_argument in ("-h", "--help"):
+            print(
+                "Usage: python main.py --plugin <plugin_name> [--list-plugins] [-f <filename>]"
+            )
+            sys.exit()
+        elif current_argument in ("-l", "--list-plugins"):
+            print("Available Plugins:")
+            for plugin_name in available_plugins:
+                print("  - %s" % plugin_name)
+            sys.exit()
+        elif current_argument in ("-p", "--plugin"):
+            plugin_to_use = current_value
+        elif current_argument in ("-f", "--filename"):
+            vault_audit_logfile = current_value
 
-        def process_IN_MODIFY(self, event):
-            print(event.maskname)
-            if myfile not in os.path.join(event.path, event.name):
-                return
-            else:
-                print(fh.readline().rstrip())
+    # Debug print for plugin to use
+    print("Looking for plugin: {}".format(plugin_to_use))
+    print("Using audit logfile: {}".format(vault_audit_logfile))
 
-        def process_IN_MOVE_SELF(self, event):
-            print(event.maskname)
-            if options.debug:
-                print(
-                    "The file moved! Continuing to read from that, until a new one is created.."
-                )
+    plugin = available_plugins.get(plugin_to_use)
 
-        def process_IN_CREATE(self, event):
-            print(event.maskname)
-            if myfile in os.path.join(event.path, event.name):
-                # yay, I exist, umm.. again!
-                global fh
-                fh.close
-                fh = open(myfile, "r")
-                # catch up, in case lines were written during the time we were re-opening:
-                if options.debug:
-                    print(
-                        "My file was created! I'm now catching up with lines in the newly created file."
-                    )
-                for line in fh.readlines():
-                    print(line.rstrip())
-                # then skip to the end, and wait for more IN_MODIFY events
-                fh.seek(0, 2)
-            return
+    if plugin:
+        watch_messages(vault_audit_logfile, plugin)
+        return
 
-    notifier = pyinotify.Notifier(wm, PTmp())
-
-    # watch the directory, so we can get IN_CREATE events and re-open the file when logrotate comes along.
-    # if you just watch the file, pyinotify errors when it moves, saying "can't track, can't trust it.. watch
-    #  the directory".
-    index = myfile.rfind("/")
-    wm.add_watch(myfile[:index], dirmask)
-
-    while True:
-        try:
-            notifier.process_events()
-            if notifier.check_events():
-                notifier.read_events()
-        except KeyboardInterrupt:
-            break
-
-    # cleanup: stop the inotify, and close the file handle:
-    notifier.stop()
-    fh.close()
-
-    sys.exit(0)
+    print("Plugin {} not found.".format(plugin_to_use))
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
