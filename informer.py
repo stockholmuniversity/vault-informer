@@ -26,14 +26,18 @@ class EventHandler(pyinotify.ProcessEvent):
         super().__init__()
         self.file_path = file_path
         self.plugin = plugin
-        self.buffered_line = ""
-        self.open_braces = 0
-        self.close_braces = 0
-        self.last_position = 0
+        self.reset_state()
+        self.initialize_last_position()
 
+    def initialize_last_position(self):
         with open(self.file_path, "r", encoding="utf-8") as f:
             f.seek(0, os.SEEK_END)
             self.last_position = f.tell()
+
+    def reset_state(self):
+        self.buffered_line = ""
+        self.open_braces = 0
+        self.close_braces = 0
 
     def process_line(self, line):
         self.buffered_line += line.strip()
@@ -48,22 +52,23 @@ class EventHandler(pyinotify.ProcessEvent):
                     print("Log line: {}".format(logline))
                     message = json.dumps(logline)
                     self.plugin.produce_msg(message)
-                self.buffered_line = ""
-                self.open_braces = 0
-                self.close_braces = 0
+                self.reset_state()
             except json.JSONDecodeError:
                 logging.error("Could not decode line: %s", self.buffered_line)
-                self.buffered_line = ""
-                self.open_braces = 0
-                self.close_braces = 0
+                self.reset_state()
+
+    def handle_file_rotation(self):
+        logging.info("Log file rotated or deleted")
+        self.reset_state()
+        self.initialize_last_position()
 
     def process_IN_MOVE_SELF(self, event):
         if event.pathname == self.file_path:
-            logging.info("Log file rotated")
-            self.last_position = 0
-            self.buffered_line = ""
-            self.open_braces = 0
-            self.close_braces = 0
+            self.handle_file_rotation()
+
+    def process_IN_DELETE(self, event):
+        if event.pathname == self.file_path:
+            self.handle_file_rotation()
 
     def process_IN_MODIFY(self, event):
         if event.pathname == self.file_path:
@@ -79,12 +84,7 @@ class EventHandler(pyinotify.ProcessEvent):
     def process_IN_CREATE(self, event):
         if event.pathname == self.file_path:
             logging.info("Log file created")
-            with open(self.file_path, "r", encoding="utf-8") as f:
-                for line in f.readlines():
-                    self.process_line(line)
-                f.seek(0, os.SEEK_END)
-                self.last_position = f.tell()
-
+            self.initialize_last_position()
 
 def discover_plugins():
     plugins = {}
