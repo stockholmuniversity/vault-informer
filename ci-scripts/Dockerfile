@@ -6,5 +6,3 @@ RUN apt-get update && \
 				python3-dev \
 				python3-pip \
     && rm -rf /var/lib/apt/lists/*
-
-RUN ln -s /usr/bin/python3 /usr/bin/python
