@@ -33,7 +33,8 @@ url = "https://maven.it.su.se/repository/su-pypi-group/simple"
     [tool.pylint.master]
     disable= [
         'missing-docstring',
-	'duplicate-code',
+	'invalid-name',
+	'consider-using-f-string',
         ]
 
     output-format = 'parseable'

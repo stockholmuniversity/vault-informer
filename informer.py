@@ -1,4 +1,4 @@
-import getopt
+import argparse
 import importlib
 import json
 import logging
@@ -49,7 +49,7 @@ class EventHandler(pyinotify.ProcessEvent):
                 vault_log_entry = json.loads(self.buffered_line)
                 logline = read_logline(vault_log_entry)
                 if logline is not None:
-                    print("Log line: {}".format(logline))
+                    logging.debug("Log line: %s", logline)
                     message = json.dumps(logline)
                     self.plugin.produce_msg(message)
                 self.reset_state()
@@ -78,6 +78,7 @@ class EventHandler(pyinotify.ProcessEvent):
                     line = f.readline()
                     if not line:
                         break
+                    # pylint: disable=W0201
                     self.last_position = f.tell()
                     self.process_line(line)
 
@@ -85,6 +86,7 @@ class EventHandler(pyinotify.ProcessEvent):
         if event.pathname == self.file_path:
             logging.info("Log file created")
             self.initialize_last_position()
+
 
 def discover_plugins():
     plugins = {}
@@ -133,11 +135,11 @@ def read_logline(logline):
 
         return None
     except ValueError as ve:
-        print("An error occurred: {}".format(ve))
+        logging.error("An error occurred: %s", ve)
         return None
     # pylint: disable=W0703
     except Exception as e:
-        print("An unexpected error occurred: {}".format(e))
+        logging.error("An unexpected error occurred: %s", e)
         return None
 
 
@@ -149,7 +151,13 @@ def watch_messages(file_path, plugin):
     notifier = pyinotify.Notifier(wm, default_proc_fun=handler)
 
     # pylint: disable=E1101
-    mask = pyinotify.IN_MODIFY | pyinotify.IN_MOVE_SELF
+    mask = (
+        pyinotify.IN_MODIFY
+        | pyinotify.IN_MOVE_SELF
+        | pyinotify.IN_CREATE
+        | pyinotify.IN_DELETE
+    )
+
     wm.add_watch(file_dir, mask)
 
     try:
@@ -158,53 +166,56 @@ def watch_messages(file_path, plugin):
         notifier.stop()
 
 
-def main(argv):
-    short_options = "hlp:f:"
-    long_options = ["help", "list-plugins", "plugin=", "filename="]
-    plugin_to_use = None
-    vault_audit_logfile = VAULT_AUDIT_LOGFILE
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
 
-    try:
-        arguments, _ = getopt.getopt(argv, short_options, long_options)
-    except getopt.error as err:
-        print(str(err))
-        sys.exit(2)
+    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser.add_argument(
+        "--list-plugins",
+        dest="list_plugins",
+        action="store_true",
+        help="List available plugins and exit.",
+    )
+    parser.add_argument(
+        "-p", "--plugin", dest="plugin", help="Specify the plugin to use."
+    )
+    parser.add_argument(
+        "-f",
+        "--filename",
+        dest="filename",
+        default=VAULT_AUDIT_LOGFILE,
+        help="Specify the filename to monitor. Defaults to VAULT_AUDIT_LOGFILE.",
+    )
 
-    # If no arguments are provided, display the help text
-    if not arguments:
-        print("Usage: python main.py --plugin <plugin_name> [--list-plugins]")
-        sys.exit()
+    args = parser.parse_args(argv)
 
     available_plugins = discover_plugins()
 
-    for current_argument, current_value in arguments:
-        if current_argument in ("-h", "--help"):
-            print(
-                "Usage: python main.py --plugin <plugin_name> [--list-plugins] [-f <filename>]"
-            )
-            sys.exit()
-        elif current_argument in ("-l", "--list-plugins"):
-            print("Available Plugins:")
-            for plugin_name in available_plugins:
-                print("  - %s" % plugin_name)
-            sys.exit()
-        elif current_argument in ("-p", "--plugin"):
-            plugin_to_use = current_value
-        elif current_argument in ("-f", "--filename"):
-            vault_audit_logfile = current_value
+    if args.list_plugins:
+        print("Available Plugins:")
+        for plugin_name in available_plugins:
+            print("  - %s" % plugin_name)
+        sys.exit()
 
-    # Debug print for plugin to use
-    print("Looking for plugin: {}".format(plugin_to_use))
+    if args.plugin:
+        plugin_to_use = args.plugin
+        print("Looking for plugin: {}".format(plugin_to_use))
+    else:
+        parser.print_help()
+        sys.exit(2)
+
+    vault_audit_logfile = args.filename
     print("Using audit logfile: {}".format(vault_audit_logfile))
 
     plugin = available_plugins.get(plugin_to_use)
 
     if plugin:
         watch_messages(vault_audit_logfile, plugin)
-        return
-
-    print("Plugin {} not found.".format(plugin_to_use))
+    else:
+        print("Plugin {} not found.".format(plugin_to_use))
+        sys.exit(2)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
