@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vault-informer"
-version = "0.1.0"
+version = "0.2.0"
 description = "Inform other systems that a Vault secret has been updated"
 authors = ["Simon Lundström <simlu+github@su.se>"]
 license = "BSD-3-Clause"
