@@ -35,6 +35,7 @@ url = "https://maven.it.su.se/repository/su-pypi-group/simple"
         'missing-docstring',
 	'invalid-name',
 	'consider-using-f-string',
+	'broad-except',
         ]
 
     output-format = 'parseable'
