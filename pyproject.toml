@@ -16,7 +16,6 @@ pyinotify = "^0.9.6"
 
 [tool.poetry.dev-dependencies]
 isort = "^4.3.21"
-black = "^23.9.1"
 pylint = "^2.6.2"
 
 [tool.poetry.scripts]
