@@ -5,6 +5,7 @@ import logging
 import os
 import pkgutil
 import sys
+import time
 
 import pyinotify
 
@@ -15,24 +16,45 @@ VAULT_AUDIT_LOGFILE = "/local/vault/logs/audit.log"
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
 )
 log = logging.getLogger(__name__)
 
 
 class EventHandler(pyinotify.ProcessEvent):
-    def __init__(self, file_path, plugin):
+    def __init__(self, file_path, plugin, wm, mask, logger=None):
         super().__init__()
         self.file_path = file_path
         self.plugin = plugin
+        self.wm = wm
+        self.mask = mask
+        self.logger = logger if logger else logging.getLogger(__name__)
+        self.last_position = self.initialize_last_position()
+        self.initialize_watch()
         self.reset_state()
-        self.initialize_last_position()
+
+    def initialize_watch(self):
+        if self.wm is not None and self.mask is not None:
+            self.wm.add_watch(self.file_path, self.mask, rec=False, auto_add=True)
 
     def initialize_last_position(self):
-        with open(self.file_path, "r", encoding="utf-8") as f:
-            f.seek(0, os.SEEK_END)
-            self.last_position = f.tell()
+        try:
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                f.seek(0, os.SEEK_END)
+                return f.tell()
+        except FileNotFoundError:
+            self.logger.warning(
+                "File not found during initialization: %s", self.file_path
+            )
+            return 0
+
+    def handle_file_rotation(self):
+        # Wait a short time for a new file to be created or settled
+        time.sleep(1)
+        self.last_position = 0  # Reset last_position as it's a new file
+        self.reset_state()
+        self.initialize_watch()
 
     def reset_state(self):
         self.buffered_line = ""
@@ -44,48 +66,82 @@ class EventHandler(pyinotify.ProcessEvent):
         self.open_braces += line.count("{")
         self.close_braces += line.count("}")
 
-        if self.open_braces == self.close_braces and self.open_braces > 0:
+        # Try to process the buffered content when the brace counts match
+        if self.open_braces == self.close_braces:
+            # If brace count matches but is zero, we don't have a JSON to process
+            if self.open_braces == 0:
+                return
+
+            # Attempt to decode the buffered JSON object
             try:
                 vault_log_entry = json.loads(self.buffered_line)
                 logline = read_logline(vault_log_entry)
                 if logline is not None:
-                    logging.debug("Log line: %s", logline)
+                    self.logger.debug("Processed log line: %s", logline)
                     message = json.dumps(logline)
+                    self.logger.info("Produced message: %s", message)
                     self.plugin.produce_msg(message)
                 self.reset_state()
-            except json.JSONDecodeError:
-                logging.error("Could not decode line: %s", self.buffered_line)
+            except json.JSONDecodeError as e:
+                self.logger.error(
+                    "JSON decode error for buffered content: %s. Error: %s",
+                    self.buffered_line,
+                    e,
+                )
+                # reset the state as this indicates that the buffered line will never successfully parse.
                 self.reset_state()
 
-    def handle_file_rotation(self):
-        logging.info("Log file rotated or deleted")
-        self.reset_state()
-        self.initialize_last_position()
-
-    def process_IN_MOVE_SELF(self, event):
-        if event.pathname == self.file_path:
-            self.handle_file_rotation()
-
-    def process_IN_DELETE(self, event):
-        if event.pathname == self.file_path:
-            self.handle_file_rotation()
+    def check_for_truncation(self):
+        try:
+            current_size = os.path.getsize(self.file_path)
+            if current_size < self.last_position:
+                self.logger.info("Log file truncated, resetting read position.")
+                self.last_position = 0
+        except FileNotFoundError:
+            self.logger.warning("File not found: %s", self.file_path)
+            self.last_position = 0
 
     def process_IN_MODIFY(self, event):
         if event.pathname == self.file_path:
-            with open(self.file_path, "r", encoding="utf-8") as f:
-                f.seek(self.last_position)
-                while True:
-                    line = f.readline()
-                    if not line:
-                        break
-                    # pylint: disable=W0201
-                    self.last_position = f.tell()
-                    self.process_line(line)
+            self.check_for_truncation()  # Check for truncation before processing
 
-    def process_IN_CREATE(self, event):
-        if event.pathname == self.file_path:
-            logging.info("Log file created")
-            self.initialize_last_position()
+            try:
+                with open(self.file_path, "r", encoding="utf-8") as f:
+                    f.seek(self.last_position)
+                    data = f.read()
+                    lines = data.split("\n")
+                    for line in lines:
+                        self.process_line(line)
+                    self.last_position += len(data)
+            except FileNotFoundError:
+                self.logger.warning(
+                    "File %s not found during modification; it may have been deleted or rotated.",
+                    self.file_path,
+                )
+                self.handle_file_rotation()
+            except Exception as e:
+                self.logger.exception(
+                    "Exception occurred while reading the file: %s", e
+                )
+
+    def process_default(self, event):
+        self.logger.debug("Unhandled event: %s", event.maskname)
+
+
+def watch_messages(file_path, plugin):
+    wm = pyinotify.WatchManager()
+
+    # pylint: disable=no-member
+    mask = pyinotify.IN_MODIFY
+    # pylint: enable=no-member
+
+    handler = EventHandler(file_path, plugin, wm, mask)
+    notifier = pyinotify.Notifier(wm, default_proc_fun=handler)
+
+    try:
+        notifier.loop()
+    finally:
+        notifier.stop()
 
 
 def discover_plugins():
@@ -141,29 +197,6 @@ def read_logline(logline):
     except Exception as e:
         logging.error("An unexpected error occurred: %s", e)
         return None
-
-
-def watch_messages(file_path, plugin):
-    file_dir = os.path.dirname(file_path)
-
-    wm = pyinotify.WatchManager()
-    handler = EventHandler(file_path, plugin)
-    notifier = pyinotify.Notifier(wm, default_proc_fun=handler)
-
-    # pylint: disable=E1101
-    mask = (
-        pyinotify.IN_MODIFY
-        | pyinotify.IN_MOVE_SELF
-        | pyinotify.IN_CREATE
-        | pyinotify.IN_DELETE
-    )
-
-    wm.add_watch(file_dir, mask)
-
-    try:
-        notifier.loop()
-    finally:
-        notifier.stop()
 
 
 def main(argv=None):

@@ -1,13 +1,12 @@
 [tool.poetry]
 name = "vault-informer"
-version = "0.2.0"
+version = "0.3.0"
 description = "Inform other systems that a Vault secret has been updated"
 authors = ["Simon Lundström <simlu+github@su.se>"]
 license = "BSD-3-Clause"
 packages = [
     { include = "informer.py" },
     { include = "plugins/__init__.py" },
-    { include = "plugins/su_esb.py" },
 ]
 
 [tool.poetry.dependencies]
@@ -36,6 +35,9 @@ url = "https://maven.it.su.se/repository/su-pypi-group/simple"
 	'invalid-name',
 	'consider-using-f-string',
 	'broad-except',
+	'too-many-instance-attributes',
+	'too-many-arguments',
+	'line-too-long',
         ]
 
     output-format = 'parseable'
