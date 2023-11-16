@@ -5,7 +5,6 @@ import logging
 import os
 import pkgutil
 import sys
-import time
 
 import pyinotify
 
@@ -15,7 +14,7 @@ from plugins import MessageBusPlugin
 VAULT_AUDIT_LOGFILE = "/local/vault/logs/audit.log"
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler()],
 )
