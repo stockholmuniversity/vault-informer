@@ -7,6 +7,7 @@ license = "BSD-3-Clause"
 packages = [
     { include = "informer.py" },
     { include = "plugins/__init__.py" },
+    { include = "plugins/su_esb.py" },
 ]
 
 [tool.poetry.dependencies]
@@ -38,6 +39,8 @@ url = "https://maven.it.su.se/repository/su-pypi-group/simple"
 	'too-many-instance-attributes',
 	'too-many-arguments',
 	'line-too-long',
+	'no-member',
+	'consider-using-with',
         ]
 
     output-format = 'parseable'
