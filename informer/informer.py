@@ -8,7 +8,7 @@ import sys
 
 import pyinotify
 
-from plugins import MessageBusPlugin
+from .plugins import MessageBusPlugin
 
 # Default vault audit log file.
 VAULT_AUDIT_LOGFILE = "/local/vault/logs/audit.log"
