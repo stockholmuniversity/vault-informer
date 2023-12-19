@@ -15,7 +15,7 @@ isort = "^4.3.21"
 pylint = "^2.6.2"
 
 [tool.poetry.scripts]
-informer = 'informer:main'
+informer = 'vault_informer.informer:main'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
