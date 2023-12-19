@@ -8,7 +8,7 @@ import sys
 
 import pyinotify
 
-from .plugins import MessageBusPlugin
+from vault_informer.plugins import MessageBusPlugin
 
 # Default vault audit log file.
 VAULT_AUDIT_LOGFILE = "/local/vault/logs/audit.log"
@@ -43,7 +43,9 @@ class EventHandler(pyinotify.ProcessEvent):
             self.file_descriptor = open(self.file_path, "r", encoding="utf-8")
             self.file_descriptor.seek(0, os.SEEK_END)
         except FileNotFoundError:
-            self.logger.warning("File not found during initialization: %s", self.file_path)
+            self.logger.warning(
+                "File not found during initialization: %s", self.file_path
+            )
 
     def close_file(self):
         if self.file_descriptor:
@@ -85,7 +87,6 @@ class EventHandler(pyinotify.ProcessEvent):
                 # reset the state as this indicates that the buffered line will never successfully parse.
                 self.reset_state()
 
-
     def check_for_truncation(self):
         try:
             if os.path.getsize(self.file_path) < self.file_descriptor.tell():
@@ -112,9 +113,15 @@ class EventHandler(pyinotify.ProcessEvent):
     def __del__(self):
         self.close_file()
 
+
 def watch_messages(file_path, plugin):
     wm = pyinotify.WatchManager()
-    mask = pyinotify.IN_MODIFY | pyinotify.IN_MOVE_SELF | pyinotify.IN_ATTRIB | pyinotify.IN_DELETE_SELF
+    mask = (
+        pyinotify.IN_MODIFY
+        | pyinotify.IN_MOVE_SELF
+        | pyinotify.IN_ATTRIB
+        | pyinotify.IN_DELETE_SELF
+    )
     handler = EventHandler(file_path, plugin, wm, mask)
     notifier = pyinotify.Notifier(wm, default_proc_fun=handler)
 
@@ -126,10 +133,13 @@ def watch_messages(file_path, plugin):
 
 def discover_plugins():
     plugins = {}
-    package_name = "plugins"
+    package_name = "vault_informer.plugins"
+    plugin_package = importlib.import_module(package_name)
 
-    for _, module_name, _ in pkgutil.iter_modules([package_name]):
-        module = importlib.import_module("{}.{}".format(package_name, module_name))
+    for _, module_name, _ in pkgutil.iter_modules(
+        plugin_package.__path__, plugin_package.__name__ + "."
+    ):
+        module = importlib.import_module(module_name)
 
         for _, cls in module.__dict__.items():
             if (
@@ -137,7 +147,7 @@ def discover_plugins():
                 and issubclass(cls, MessageBusPlugin)
                 and cls is not MessageBusPlugin
             ):
-                plugins[module_name] = cls()
+                plugins[module_name.split(".")[-1]] = cls()
 
     return plugins
 
