@@ -4,7 +4,7 @@ version = "0.3.0"
 description = "Inform other systems that a Vault secret has been updated"
 authors = ["Simon Lundström <simlu+github@su.se>"]
 license = "BSD-3-Clause"
-include = ["informer/*.py", "plugins/*.py"]
+include = ["informer/*.py", "informer/plugins/*.py"]
 
 [tool.poetry.dependencies]
 python = ">=3.5.2"
