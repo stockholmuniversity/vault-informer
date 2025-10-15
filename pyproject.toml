@@ -21,10 +21,6 @@ informer = 'vault_informer.informer:main'
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[[tool.poetry.source]]
-name = "su"
-url = "https://maven.it.su.se/repository/su-pypi-group/simple"
-
 [tool.pylint]
     [tool.pylint.master]
     disable= [
