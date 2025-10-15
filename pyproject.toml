@@ -9,6 +9,7 @@ include = [{ path = "vault_informer" }]
 [tool.poetry.dependencies]
 python = ">=3.5.2"
 pyinotify = "^0.9.6"
+stomp-py = "^4.1"
 
 [tool.poetry.dev-dependencies]
 isort = "^4.3.21"

@@ -29,6 +29,16 @@ files = [
 ]
 
 [[package]]
+name = "docopt"
+version = "0.6.2"
+description = "Pythonic argument parser, that will make you smile"
+optional = false
+python-versions = "*"
+files = [
+    {file = "docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491"},
+]
+
+[[package]]
 name = "isort"
 version = "4.3.21"
 description = "A Python utility / library to sort Python imports."
@@ -124,6 +134,19 @@ files = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
+
+[[package]]
+name = "stomp-py"
+version = "4.1.22"
+description = "Python STOMP client, supporting versions 1.0, 1.1 and 1.2 of the protocol"
+optional = false
+python-versions = "*"
+files = [
+    {file = "stomp.py-4.1.22.tar.gz", hash = "sha256:d28120d902dcb81274cf78bd269dfbdfe2b20ea5ae5b33d90b56a32e8c18abe2"},
+]
+
+[package.dependencies]
+docopt = ">=0.6.2"
 
 [[package]]
 name = "toml"
@@ -262,4 +285,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.5.2"
-content-hash = "a1423a56910ab4d533d0a7f2a8e41ce882f2ab76f9340b17ec6363020cfa5397"
+content-hash = "b6f7439dda6e4346b06f6945a946561da6dc6fa54b7009b92e2481aa392c5132"
