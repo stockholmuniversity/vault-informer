@@ -27,7 +27,6 @@ build-backend = "poetry.core.masonry.api"
     disable= [
         'missing-docstring',
 	'invalid-name',
-	'broad-except',
 	'too-many-instance-attributes',
 	'too-many-arguments',
 	'no-member',

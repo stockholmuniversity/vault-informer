@@ -184,7 +184,7 @@ def read_logline(logline):
         logging.error("An error occurred: %s", ve)
         return None
     # pylint: disable=W0703
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         logging.error("An unexpected error occurred: %s", e)
         return None
 
