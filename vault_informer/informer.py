@@ -77,11 +77,11 @@ class EventHandler(pyinotify.ProcessEvent):
                     self.logger.info("Produced message: %s", message)
                     self.plugin.produce_msg(message)
                 self.reset_state()
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError as ex:
                 self.logger.error(
                     "JSON decode error for buffered content: %s. Error: %s",
                     self.buffered_line,
-                    e,
+                    ex,
                 )
                 # reset the state as this indicates that the buffered line will
                 # never successfully parse.
@@ -180,12 +180,12 @@ def read_logline(logline):
                     return logline
 
         return None
-    except ValueError as ve:
-        logging.error("An error occurred: %s", ve)
+    except ValueError as ex:
+        logging.error("An error occurred: %s", ex)
         return None
     # pylint: disable=W0703
-    except Exception as e:  # pylint: disable=broad-except
-        logging.error("An unexpected error occurred: %s", e)
+    except Exception as ex:  # pylint: disable=broad-except
+        logging.error("An unexpected error occurred: %s", ex)
         return None
 
 

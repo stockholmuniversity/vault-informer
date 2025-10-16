@@ -26,7 +26,6 @@ build-backend = "poetry.core.masonry.api"
     [tool.pylint.master]
     disable= [
         'missing-docstring',
-	'invalid-name',
 	'too-many-instance-attributes',
 	'too-many-arguments',
 	'no-member',
