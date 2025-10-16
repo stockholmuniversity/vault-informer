@@ -21,13 +21,14 @@ log = logging.getLogger(__name__)
 
 
 class EventHandler(pyinotify.ProcessEvent):
-    def __init__(self, file_path, plugin, watch_manager, mask, logger=None):
+    def __init__(self, file_path, plugin, watch_manager, mask):
         super().__init__()
         self.file_path = file_path
         self.plugin = plugin
         self.watch_manager = watch_manager
         self.mask = mask
-        self.logger = logger if logger else logging.getLogger(__name__)
+        # FIXME: Do we even need a logger instance variable?
+        self.logger = logging.getLogger(__name__)
         self.file_descriptor = None
         self.initialize_watch()
         self.reset_state()
