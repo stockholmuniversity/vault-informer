@@ -21,11 +21,11 @@ log = logging.getLogger(__name__)
 
 
 class EventHandler(pyinotify.ProcessEvent):
-    def __init__(self, file_path, plugin, wm, mask, logger=None):
+    def __init__(self, file_path, plugin, watch_manager, mask, logger=None):
         super().__init__()
         self.file_path = file_path
         self.plugin = plugin
-        self.wm = wm
+        self.watch_manager = watch_manager
         self.mask = mask
         self.logger = logger if logger else logging.getLogger(__name__)
         self.file_descriptor = None
@@ -33,8 +33,10 @@ class EventHandler(pyinotify.ProcessEvent):
         self.reset_state()
 
     def initialize_watch(self):
-        if self.wm is not None and self.mask is not None:
-            self.wm.add_watch(self.file_path, self.mask, rec=False, auto_add=True)
+        if self.watch_manager is not None and self.mask is not None:
+            self.watch_manager.add_watch(
+                self.file_path, self.mask, rec=False, auto_add=True
+            )
         self.open_file()
 
     def open_file(self):
@@ -115,15 +117,15 @@ class EventHandler(pyinotify.ProcessEvent):
 
 
 def watch_messages(file_path, plugin):
-    wm = pyinotify.WatchManager()
+    watch_manager = pyinotify.WatchManager()
     mask = (
         pyinotify.IN_MODIFY
         | pyinotify.IN_MOVE_SELF
         | pyinotify.IN_ATTRIB
         | pyinotify.IN_DELETE_SELF
     )
-    handler = EventHandler(file_path, plugin, wm, mask)
-    notifier = pyinotify.Notifier(wm, default_proc_fun=handler)
+    handler = EventHandler(file_path, plugin, watch_manager, mask)
+    notifier = pyinotify.Notifier(watch_manager, default_proc_fun=handler)
 
     try:
         notifier.loop()
