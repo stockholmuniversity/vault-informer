@@ -100,7 +100,7 @@ class EventHandler(pyinotify.ProcessEvent):
             self.close_file()
             self.open_file()
 
-    def process_IN_MODIFY(self, event):
+    def process_IN_MODIFY(self, event):  # pylint: disable=invalid-name
         if event.pathname == self.file_path:
             self.check_for_truncation()
 
