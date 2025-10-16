@@ -195,7 +195,9 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser = argparse.ArgumentParser(
+        description="Tail Vault audit log and send it elsewhere"
+    )
     parser.add_argument(
         "--list-plugins",
         dest="list_plugins",
