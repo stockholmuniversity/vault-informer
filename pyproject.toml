@@ -30,7 +30,6 @@ build-backend = "poetry.core.masonry.api"
 	'broad-except',
 	'too-many-instance-attributes',
 	'too-many-arguments',
-	'line-too-long',
 	'no-member',
         ]
 

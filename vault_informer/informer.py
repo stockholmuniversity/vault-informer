@@ -83,7 +83,8 @@ class EventHandler(pyinotify.ProcessEvent):
                     self.buffered_line,
                     e,
                 )
-                # reset the state as this indicates that the buffered line will never successfully parse.
+                # reset the state as this indicates that the buffered line will
+                # never successfully parse.
                 self.reset_state()
 
     def check_for_truncation(self):
