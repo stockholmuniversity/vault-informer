@@ -7,7 +7,6 @@ import pkgutil
 import sys
 
 import pyinotify
-
 from vault_informer.plugins import MessageBusPlugin
 
 # Default vault audit log file.

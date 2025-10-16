@@ -1,9 +1,9 @@
 import configparser
+import datetime
 import logging
+import os
 import ssl
 import sys
-import datetime
-import os 
 
 import stomp
 
@@ -14,13 +14,21 @@ CHECK_FILE_AGE_FILE = "/local/vault-informer/check_file_age_file"
 
 log = logging.getLogger(__name__)
 
+
 def touch_file(filename):
     try:
         # Update the modification time
-        os.utime(filename, times=(datetime.datetime.now().timestamp(), datetime.datetime.now().timestamp()))
+        os.utime(
+            filename,
+            times=(
+                datetime.datetime.now().timestamp(),
+                datetime.datetime.now().timestamp(),
+            ),
+        )
     except FileNotFoundError:
         # Create the file if it doesn't exist
-        open(filename, 'a').close()
+        open(filename, "a").close()
+
 
 def load_config():
     cfg = configparser.ConfigParser()
