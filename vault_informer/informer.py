@@ -220,27 +220,27 @@ def main(argv=None):
     available_plugins = discover_plugins()
 
     if args.list_plugins:
-        print("Available Plugins:")
+        log.info("Available Plugins:")
         for plugin_name in available_plugins:
-            print("  - %s" % plugin_name)
+            log.info("  - %s", plugin_name)
         sys.exit()
 
     if args.plugin:
         plugin_to_use = args.plugin
-        print("Looking for plugin: {}".format(plugin_to_use))
+        log.info("Looking for plugin: %s", plugin_to_use)
     else:
         parser.print_help()
         sys.exit(2)
 
     vault_audit_logfile = args.filename
-    print("Using audit logfile: {}".format(vault_audit_logfile))
+    log.info("Using audit logfile: %s", vault_audit_logfile)
 
     plugin = available_plugins.get(plugin_to_use)
 
     if plugin:
         watch_messages(vault_audit_logfile, plugin)
     else:
-        print("Plugin {} not found.".format(plugin_to_use))
+        log.error("Plugin %s not found.", plugin_to_use)
         sys.exit(2)
 
 
