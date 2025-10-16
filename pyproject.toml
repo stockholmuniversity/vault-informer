@@ -27,13 +27,11 @@ build-backend = "poetry.core.masonry.api"
     disable= [
         'missing-docstring',
 	'invalid-name',
-	'consider-using-f-string',
 	'broad-except',
 	'too-many-instance-attributes',
 	'too-many-arguments',
 	'line-too-long',
 	'no-member',
-	'consider-using-with',
         ]
 
     output-format = 'parseable'
