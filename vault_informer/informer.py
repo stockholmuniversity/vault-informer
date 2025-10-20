@@ -28,8 +28,6 @@ class EventHandler(pyinotify.ProcessEvent):
         self.plugin = plugin
         self.watch_manager = watch_manager
         self.mask = mask
-        # FIXME: Do we even need a logger instance variable?
-        self.logger = logging.getLogger(__name__)
         self.file_descriptor = None
         self.initialize_watch()
         self.reset_state()
@@ -46,9 +44,7 @@ class EventHandler(pyinotify.ProcessEvent):
             self.file_descriptor = open(self.file_path, "r", encoding="utf-8")
             self.file_descriptor.seek(0, os.SEEK_END)
         except FileNotFoundError:
-            self.logger.warning(
-                "File not found during initialization: %s", self.file_path
-            )
+            log.warning("File not found during initialization: %s", self.file_path)
 
     def close_file(self):
         if self.file_descriptor:
@@ -76,13 +72,13 @@ class EventHandler(pyinotify.ProcessEvent):
                 vault_log_entry = json.loads(self.buffered_line)
                 logline = read_logline(vault_log_entry)
                 if logline is not None:
-                    self.logger.debug("Processed log line: %s", logline)
+                    log.debug("Processed log line: %s", logline)
                     message = json.dumps(logline)
-                    self.logger.info("Produced message: %s", message)
+                    log.info("Produced message: %s", message)
                     self.plugin.produce_msg(message)
                 self.reset_state()
             except json.JSONDecodeError as ex:
-                self.logger.error(
+                log.error(
                     "JSON decode error for buffered content: %s. Error: %s",
                     self.buffered_line,
                     ex,
@@ -94,11 +90,11 @@ class EventHandler(pyinotify.ProcessEvent):
     def check_for_truncation(self):
         try:
             if os.path.getsize(self.file_path) < self.file_descriptor.tell():
-                self.logger.info("Log file truncated, resetting read position.")
+                log.info("Log file truncated, resetting read position.")
                 self.close_file()
                 self.open_file()
         except FileNotFoundError:
-            self.logger.warning("File not found: %s", self.file_path)
+            log.warning("File not found: %s", self.file_path)
             self.close_file()
             self.open_file()
 
@@ -112,7 +108,7 @@ class EventHandler(pyinotify.ProcessEvent):
                 self.process_line(line)
 
     def process_default(self, event):
-        self.logger.debug("Unhandled event: %s", event.maskname)
+        log.debug("Unhandled event: %s", event.maskname)
 
     def __del__(self):
         self.close_file()
