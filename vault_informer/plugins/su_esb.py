@@ -35,7 +35,7 @@ def load_config():
     try:
         cfg.read(PRODUCER_CONFIGFILE)
     except configparser.Error as ex:
-        logging.error("Failed to read config: %s", ex)
+        log.error("Failed to read config: %s", ex)
         sys.exit(1)
 
     return {
@@ -65,6 +65,6 @@ class ActiveMQ(MessageBusPlugin):
             conn.disconnect()
             touch_file(CHECK_FILE_AGE_FILE)
         except Exception as ex:  # pylint: disable=broad-except
-            logging.error("Failed to produce message: %s", ex)
+            log.error("Failed to produce message: %s", ex)
 
-        logging.info("Sending log to ActiveMQ: %s", message)
+        log.info("Sending log to ActiveMQ: %s", message)

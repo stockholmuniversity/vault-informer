@@ -184,10 +184,10 @@ def read_logline(logline):
 
         return None
     except ValueError as ex:
-        logging.error("An error occurred: %s", ex)
+        log.error("An error occurred: %s", ex)
         return None
     except Exception as ex:  # pylint: disable=broad-except
-        logging.error("An unexpected error occurred: %s", ex)
+        log.error("An unexpected error occurred: %s", ex)
         return None
 
 
