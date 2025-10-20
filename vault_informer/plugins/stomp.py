@@ -47,7 +47,7 @@ def load_config():
 
 
 # pylint: disable=too-few-public-methods
-class ActiveMQ(InformerPlugin):
+class Stomp(InformerPlugin):
     def handle_event(self, message):
         config = load_config()
         host = config["esb_host"]
@@ -67,4 +67,4 @@ class ActiveMQ(InformerPlugin):
         except Exception as ex:  # pylint: disable=broad-except
             log.error("Failed to produce message: %s", ex)
 
-        log.info("Sending log to ActiveMQ: %s", message)
+        log.info("Sending log to STOMP: %s", message)
