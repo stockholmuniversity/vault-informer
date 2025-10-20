@@ -22,11 +22,11 @@ log = logging.getLogger(__name__)
 
 
 class EventHandler(pyinotify.ProcessEvent):
-    def __init__(self, file_path, plugin, watch_manager):
+    def __init__(self, file_path, plugin):
         super().__init__()
         self.file_path = file_path
         self.plugin = plugin
-        self.watch_manager = watch_manager
+        self.watch_manager = pyinotify.WatchManager()
         self.mask = (
             # pylint: disable=no-member
             pyinotify.IN_MODIFY
@@ -121,9 +121,8 @@ class EventHandler(pyinotify.ProcessEvent):
 
 
 def watch_messages(file_path, plugin):
-    watch_manager = pyinotify.WatchManager()
-    handler = EventHandler(file_path, plugin, watch_manager)
-    notifier = pyinotify.Notifier(watch_manager, default_proc_fun=handler)
+    handler = EventHandler(file_path, plugin)
+    notifier = pyinotify.Notifier(handler.watch_manager, default_proc_fun=handler)
 
     try:
         notifier.loop()
