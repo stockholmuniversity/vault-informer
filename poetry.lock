@@ -32,7 +32,7 @@ files = [
 name = "docopt"
 version = "0.6.2"
 description = "Pythonic argument parser, that will make you smile"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491"},
@@ -139,7 +139,7 @@ files = [
 name = "stomp-py"
 version = "4.1.22"
 description = "Python STOMP client, supporting versions 1.0, 1.1 and 1.2 of the protocol"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "stomp.py-4.1.22.tar.gz", hash = "sha256:d28120d902dcb81274cf78bd269dfbdfe2b20ea5ae5b33d90b56a32e8c18abe2"},
@@ -282,7 +282,10 @@ files = [
     {file = "wrapt-1.15.0.tar.gz", hash = "sha256:d06730c6aed78cee4126234cf2d071e01b44b915e725a6cb439a879ec9754a3a"},
 ]
 
+[extras]
+stomp = ["stomp-py"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.5.2"
-content-hash = "b6f7439dda6e4346b06f6945a946561da6dc6fa54b7009b92e2481aa392c5132"
+content-hash = "802b33619108455ca2646d3db2f0710668e4ea73d1e0d3d572895163e4a4fce3"
