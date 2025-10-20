@@ -6,7 +6,6 @@ import ssl
 import sys
 
 import stomp
-
 from vault_informer.plugins import InformerPlugin
 
 PRODUCER_CONFIGFILE = "conf/consumer_conf.ini"
@@ -48,8 +47,11 @@ def load_config():
 
 # pylint: disable=too-few-public-methods
 class Stomp(InformerPlugin):
+    def __init__(self):
+        self.config = load_config()
+
     def handle_event(self, message):
-        config = load_config()
+        config = self.config
         host = config["esb_host"]
         port = "61612"
         username = config["esb_user"]
