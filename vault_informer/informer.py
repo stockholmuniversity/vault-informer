@@ -32,22 +32,22 @@ class EventHandler(pyinotify.ProcessEvent):
             | pyinotify.IN_ATTRIB
             | pyinotify.IN_DELETE_SELF
         )
-        self.file_descriptor = None
-        self.watch_manager.add_watch(self.file_path, mask, rec=False, auto_add=True)
+        self.watch_manager.add_watch(
+            self.file_path.name, mask, rec=False, auto_add=True
+        )
         self.open_file()
         self.reset_state()
 
     def open_file(self):
         try:
-            self.file_descriptor = open(self.file_path, "r", encoding="utf-8")
-            self.file_descriptor.seek(0, os.SEEK_END)
+            if self.file_path.closed:
+                self.file_path = open(self.file_path.name, "r", encoding="utf-8")
+            self.file_path.seek(0, os.SEEK_END)
         except FileNotFoundError:
-            log.warning("File not found during initialization: %s", self.file_path)
+            log.warning("File not found during initialization: %s", self.file_path.name)
 
     def close_file(self):
-        if self.file_descriptor:
-            self.file_descriptor.close()
-            self.file_descriptor = None
+        self.file_path.close()
 
     def reset_state(self):
         self.buffered_line = ""
@@ -87,7 +87,7 @@ class EventHandler(pyinotify.ProcessEvent):
 
     def check_for_truncation(self):
         try:
-            if os.path.getsize(self.file_path) < self.file_descriptor.tell():
+            if os.path.getsize(self.file_path.name) < self.file_path.tell():
                 log.info("Log file truncated, resetting read position.")
                 self.close_file()
                 self.open_file()
@@ -97,10 +97,10 @@ class EventHandler(pyinotify.ProcessEvent):
             self.open_file()
 
     def process_IN_MODIFY(self, event):  # pylint: disable=invalid-name
-        if event.pathname == self.file_path:
+        if event.pathname == self.file_path.name:
             self.check_for_truncation()
 
-            data = self.file_descriptor.read()
+            data = self.file_path.read()
             lines = data.split("\n")
             for line in lines:
                 self.process_line(line)
@@ -204,6 +204,7 @@ def main(argv=None):
     parser.add_argument(
         "-f",
         "--filename",
+        type=argparse.FileType("r", encoding="utf-8"),
         default="/var/log/vault_audit.log",
         help="Specify the filename to monitor (default: %(default)s)",
     )
@@ -229,13 +230,12 @@ def main(argv=None):
         parser.print_help()
         sys.exit(2)
 
-    vault_audit_logfile = args.filename
-    log.info("Using audit logfile: %s", vault_audit_logfile)
+    log.info("Using audit logfile: %s", args.filename.name)
 
     plugin = available_plugins.get(plugin_to_use)
 
     if plugin:
-        watch_messages(vault_audit_logfile, plugin)
+        watch_messages(args.filename, plugin)
     else:
         log.error("Plugin %s not found.", plugin_to_use)
         sys.exit(2)
