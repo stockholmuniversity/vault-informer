@@ -8,7 +8,7 @@ import sys
 
 import pyinotify
 
-from vault_informer.plugins import MessageBusPlugin
+from vault_informer.plugins import InformerPlugin
 
 # Default vault audit log file.
 VAULT_AUDIT_LOGFILE = "/local/vault/logs/audit.log"
@@ -75,7 +75,7 @@ class EventHandler(pyinotify.ProcessEvent):
                     log.debug("Processed log line: %s", logline)
                     message = json.dumps(logline)
                     log.info("Produced message: %s", message)
-                    self.plugin.produce_msg(message)
+                    self.plugin.handle_event(message)
                 self.reset_state()
             except json.JSONDecodeError as ex:
                 log.error(
@@ -137,8 +137,8 @@ def discover_plugins():
         for _, cls in module.__dict__.items():
             if (
                 isinstance(cls, type)
-                and issubclass(cls, MessageBusPlugin)
-                and cls is not MessageBusPlugin
+                and issubclass(cls, InformerPlugin)
+                and cls is not InformerPlugin
             ):
                 plugins[module_name.split(".")[-1]] = cls()
 

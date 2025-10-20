@@ -7,7 +7,7 @@ import sys
 
 import stomp
 
-from . import MessageBusPlugin
+from vault_informer.plugins import InformerPlugin
 
 PRODUCER_CONFIGFILE = "conf/consumer_conf.ini"
 CHECK_FILE_AGE_FILE = "/local/vault-informer/check_file_age_file"
@@ -47,8 +47,8 @@ def load_config():
 
 
 # pylint: disable=too-few-public-methods
-class ActiveMQ(MessageBusPlugin):
-    def produce_msg(self, message):
+class ActiveMQ(InformerPlugin):
+    def handle_event(self, message):
         config = load_config()
         host = config["esb_host"]
         port = "61612"

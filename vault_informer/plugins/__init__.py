@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 
 # pylint: disable=too-few-public-methods
-class MessageBusPlugin(ABC):
+class InformerPlugin(ABC):
     @abstractmethod
-    def produce_msg(self, message):
+    def handle_event(self, message):
         pass
