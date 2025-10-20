@@ -10,9 +10,6 @@ import pyinotify
 
 from vault_informer.plugins import InformerPlugin
 
-# Default vault audit log file.
-VAULT_AUDIT_LOGFILE = "/local/vault/logs/audit.log"
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -201,8 +198,8 @@ def main(argv=None):
         "-f",
         "--filename",
         dest="filename",
-        default=VAULT_AUDIT_LOGFILE,
-        help="Specify the filename to monitor. Defaults to VAULT_AUDIT_LOGFILE.",
+        default="/local/vault/logs/audit.log",
+        help="Specify the filename to monitor (default: %(default)s)",
     )
 
     args = parser.parse_args(argv)
