@@ -1,15 +1,12 @@
 import argparse
 import configparser
-import importlib
 import json
 import logging
 import os
-import pkgutil
 import sys
+from importlib.metadata import entry_points
 
 import pyinotify
-
-from vault_informer.plugins import InformerPlugin
 
 logging.basicConfig(
     level=logging.INFO,
@@ -101,25 +98,8 @@ def watch_messages(file_path, plugin):
         notifier.stop()
 
 
-def discover_plugins(config):
-    plugins = {}
-    package_name = "vault_informer.plugins"
-    plugin_package = importlib.import_module(package_name)
-
-    for _, module_name, _ in pkgutil.iter_modules(
-        plugin_package.__path__, plugin_package.__name__ + "."
-    ):
-        module = importlib.import_module(module_name)
-
-        for _, cls in module.__dict__.items():
-            if (
-                isinstance(cls, type)
-                and issubclass(cls, InformerPlugin)
-                and cls is not InformerPlugin
-            ):
-                plugins[module_name.split(".")[-1]] = cls(config)
-
-    return plugins
+def discover_plugins():
+    return entry_points().get("vault_informer.plugins", [])
 
 
 def filter_sensitive_data(data):
@@ -194,30 +174,41 @@ def main(argv=None):
     with args.config as config_file:
         config.read_file(config_file)
 
-    available_plugins = discover_plugins(config)
+    available_plugins = discover_plugins()
 
     if args.list_plugins:
         print("Available Plugins:")
         for plugin_name in available_plugins:
-            print("  - %s" % plugin_name)
+            print("  - %s" % plugin_name.name)
         sys.exit()
 
+    plugin_name = config.get("vault_informer", "plugin")
     if args.plugin:
-        plugin_to_use = args.plugin
-        log.info("Looking for plugin: %s", plugin_to_use)
-    else:
+        plugin_name = args.plugin
+    log.info("Looking for plugin: %s", plugin_name)
+
+    plugin_class_name = next(
+        iter(
+            [ep for ep in available_plugins if ep.name == plugin_name],
+        ),
+        None,
+    )
+    if not plugin_class_name:
+        log.fatal(
+            "Tried to load plugin %r but failed to find it",
+            plugin_name,
+        )
         parser.print_help()
         sys.exit(2)
 
+    log.info("Loaded plugin %r", plugin_class_name.name)
+
+    plugin_class = plugin_class_name.load()
+    plugin = plugin_class(config)
+
     log.info("Using audit logfile: %s", args.filename.name)
 
-    plugin = available_plugins.get(plugin_to_use)
-
-    if plugin:
-        watch_messages(args.filename, plugin)
-    else:
-        log.error("Plugin %s not found.", plugin_to_use)
-        sys.exit(2)
+    watch_messages(args.filename, plugin)
 
 
 if __name__ == "__main__":

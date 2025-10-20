@@ -18,6 +18,9 @@ pylint = "^2.6.2"
 [tool.poetry.scripts]
 informer = 'vault_informer.informer:main'
 
+[tool.poetry.plugins."vault_informer.plugins"]
+stomp = "vault_informer.plugins.stomp:Stomp"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
