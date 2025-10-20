@@ -197,8 +197,7 @@ def main(argv=None):
     parser.add_argument(
         "-f",
         "--filename",
-        dest="filename",
-        default="/local/vault/logs/audit.log",
+        default="/var/log/vault_audit.log",
         help="Specify the filename to monitor (default: %(default)s)",
     )
 
