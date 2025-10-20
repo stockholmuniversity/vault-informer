@@ -1,9 +1,7 @@
-import configparser
 import datetime
 import logging
 import os
 import ssl
-import sys
 
 import stomp
 from vault_informer.plugins import InformerPlugin
@@ -29,13 +27,8 @@ def touch_file(filename):
         open(filename, "a").close()
 
 
-def load_config():
-    cfg = configparser.ConfigParser()
-    try:
-        cfg.read(PRODUCER_CONFIGFILE)
-    except configparser.Error as ex:
-        log.error("Failed to read config: %s", ex)
-        sys.exit(1)
+def load_config(self):
+    cfg = self.config
 
     return {
         "esb_host": cfg.get("esb", "hostname"),
@@ -47,11 +40,11 @@ def load_config():
 
 # pylint: disable=too-few-public-methods
 class Stomp(InformerPlugin):
-    def __init__(self):
-        self.config = load_config()
+    def __init__(self, config):
+        self.config = config
 
     def handle_event(self, message):
-        config = self.config
+        config = load_config(self)
         host = config["esb_host"]
         port = "61612"
         username = config["esb_user"]

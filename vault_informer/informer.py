@@ -1,4 +1,5 @@
 import argparse
+import configparser
 import importlib
 import json
 import logging
@@ -121,7 +122,7 @@ def watch_messages(file_path, plugin):
         notifier.stop()
 
 
-def discover_plugins():
+def discover_plugins(config):
     plugins = {}
     package_name = "vault_informer.plugins"
     plugin_package = importlib.import_module(package_name)
@@ -137,7 +138,7 @@ def discover_plugins():
                 and issubclass(cls, InformerPlugin)
                 and cls is not InformerPlugin
             ):
-                plugins[module_name.split(".")[-1]] = cls()
+                plugins[module_name.split(".")[-1]] = cls(config)
 
     return plugins
 
@@ -186,6 +187,12 @@ def main(argv=None):
         description="Tail Vault audit log and send it elsewhere"
     )
     parser.add_argument(
+        "--config",
+        type=argparse.FileType("r", encoding="utf-8"),
+        help="Config file",
+        required=True,
+    )
+    parser.add_argument(
         "--list-plugins",
         dest="list_plugins",
         action="store_true",
@@ -203,7 +210,11 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
-    available_plugins = discover_plugins()
+    config = configparser.ConfigParser()
+    with args.config as config_file:
+        config.read_file(config_file)
+
+    available_plugins = discover_plugins(config)
 
     if args.list_plugins:
         print("Available Plugins:")
