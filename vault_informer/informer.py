@@ -120,6 +120,7 @@ class EventHandler(pyinotify.ProcessEvent):
 def watch_messages(file_path, plugin):
     watch_manager = pyinotify.WatchManager()
     mask = (
+        # pylint: disable=no-member
         pyinotify.IN_MODIFY
         | pyinotify.IN_MOVE_SELF
         | pyinotify.IN_ATTRIB
