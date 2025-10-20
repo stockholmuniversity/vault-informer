@@ -27,7 +27,7 @@ class EventHandler(pyinotify.ProcessEvent):
         self.file_path = file_path
         self.plugin = plugin
         self.watch_manager = pyinotify.WatchManager()
-        self.mask = (
+        mask = (
             # pylint: disable=no-member
             pyinotify.IN_MODIFY
             | pyinotify.IN_MOVE_SELF
@@ -35,15 +35,9 @@ class EventHandler(pyinotify.ProcessEvent):
             | pyinotify.IN_DELETE_SELF
         )
         self.file_descriptor = None
-        self.initialize_watch()
-        self.reset_state()
-
-    def initialize_watch(self):
-        if self.watch_manager is not None and self.mask is not None:
-            self.watch_manager.add_watch(
-                self.file_path, self.mask, rec=False, auto_add=True
-            )
+        self.watch_manager.add_watch(self.file_path, mask, rec=False, auto_add=True)
         self.open_file()
+        self.reset_state()
 
     def open_file(self):
         try:
