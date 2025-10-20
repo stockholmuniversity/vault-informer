@@ -36,7 +36,7 @@ class Stomp(InformerPlugin):
         port = "61612"
 
         try:
-            conn = stomp.Connection([(host, port)])
+            conn = stomp.Connection([(host, port)], heartbeats=(4000, 4000))
             conn.start()
             conn.set_ssl(for_hosts=[(host, port)], ssl_version=ssl.PROTOCOL_TLS)
             conn.connect(
