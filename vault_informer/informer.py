@@ -36,7 +36,6 @@ class EventHandler(pyinotify.ProcessEvent):
             self.file_path.name, mask, rec=False, auto_add=True
         )
         self.open_file()
-        self.reset_state()
 
     def open_file(self):
         try:
@@ -49,41 +48,22 @@ class EventHandler(pyinotify.ProcessEvent):
     def close_file(self):
         self.file_path.close()
 
-    def reset_state(self):
-        self.buffered_line = ""
-        self.open_braces = 0
-        self.close_braces = 0
-
     def process_line(self, line):
-        self.buffered_line += line.strip()
-        self.open_braces += line.count("{")
-        self.close_braces += line.count("}")
-
-        # Try to process the buffered content when the brace counts match
-        if self.open_braces == self.close_braces:
-            # If brace count matches but is zero, we don't have a JSON to process
-            if self.open_braces == 0:
-                return
-
-            # Attempt to decode the buffered JSON object
-            try:
-                vault_log_entry = json.loads(self.buffered_line)
-                logline = read_logline(vault_log_entry)
-                if logline is not None:
-                    log.debug("Processed log line: %s", logline)
-                    message = json.dumps(logline)
-                    log.info("Produced message: %s", message)
-                    self.plugin.handle_event(message)
-                self.reset_state()
-            except json.JSONDecodeError as ex:
-                log.error(
-                    "JSON decode error for buffered content: %s. Error: %s",
-                    self.buffered_line,
-                    ex,
-                )
-                # reset the state as this indicates that the buffered line will
-                # never successfully parse.
-                self.reset_state()
+        # Attempt to decode the JSON object
+        try:
+            vault_log_entry = json.loads(line)
+            logline = read_logline(vault_log_entry)
+            if logline is not None:
+                log.debug("Processed log line: %s", logline)
+                message = json.dumps(logline)
+                log.info("Produced message: %s", message)
+                self.plugin.handle_event(message)
+        except json.JSONDecodeError as ex:
+            log.error(
+                "JSON decode error for buffered content: %r. Error: %s",
+                line,
+                ex,
+            )
 
     def check_for_truncation(self):
         try:
@@ -100,9 +80,8 @@ class EventHandler(pyinotify.ProcessEvent):
         if event.pathname == self.file_path.name:
             self.check_for_truncation()
 
-            data = self.file_path.read()
-            lines = data.split("\n")
-            for line in lines:
+            line = self.file_path.readline().strip()
+            if line:
                 self.process_line(line)
 
     def process_default(self, event):
