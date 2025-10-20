@@ -206,9 +206,9 @@ def main(argv=None):
     available_plugins = discover_plugins()
 
     if args.list_plugins:
-        log.info("Available Plugins:")
+        print("Available Plugins:")
         for plugin_name in available_plugins:
-            log.info("  - %s", plugin_name)
+            print("  - %s" % plugin_name)
         sys.exit()
 
     if args.plugin:
