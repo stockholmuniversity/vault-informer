@@ -122,7 +122,7 @@ def read_logline(logline):
         if not isinstance(logline, dict):
             raise ValueError("Input must be a dictionary.")
 
-        if logline["type"] == "request":
+        if logline["type"] == "response":
             if logline["request"]["operation"] in ["update", "create", "delete"]:
                 error_status = logline.get("error", None)
                 if error_status is None:
