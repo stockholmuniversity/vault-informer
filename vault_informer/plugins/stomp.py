@@ -11,6 +11,29 @@ CHECK_FILE_AGE_FILE = "/local/vault-informer/check_file_age_file"
 log = logging.getLogger(__name__)
 
 
+class MessageFilter(logging.Filter):  # pylint: disable=too-few-public-methods
+    def __init__(self, deny_pattern=None, allow_pattern=None):
+        super().__init__()
+        self.deny = deny_pattern if deny_pattern else []
+        self.allow = allow_pattern if allow_pattern else []
+
+    def filter(self, record):
+        msg = record.getMessage()
+        # deny highest priority
+        if record.levelname == "INFO" and any(e in msg for e in self.deny):
+            return False
+        # if allow specified, only allow matching messages
+        if record.levelname == "INFO" and any(e in msg for e in self.allow):
+            return True
+        return True  # default allow
+
+
+# Remove messages that aren't useful on the INFO level
+logging.getLogger("stomp.py").addFilter(
+    MessageFilter(deny_pattern=["frame", "loop ended", "loop"])
+)
+
+
 def touch_file(filename):
     try:
         # Update the modification time
