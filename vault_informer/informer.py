@@ -77,8 +77,8 @@ class EventHandler(pyinotify.ProcessEvent):
         if event.pathname == self.file_path.name:
             self.check_for_truncation()
 
-            line = self.file_path.readline().strip()
-            if line:
+            lines = self.file_path.readlines()
+            for line in lines:
                 self.process_line(line)
 
     def process_default(self, event):
