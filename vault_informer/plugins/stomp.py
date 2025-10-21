@@ -73,7 +73,9 @@ class Stomp(InformerPlugin):
                 wait=True,
             )
             conn.send(
-                body=message, destination=self.config.get("plugins:stomp", "queue")
+                body=message,
+                destination=self.config.get("plugins:stomp", "queue"),
+                persistent="true",
             )
             conn.disconnect()
             touch_file(CHECK_FILE_AGE_FILE)
