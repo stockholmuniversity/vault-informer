@@ -21,6 +21,7 @@ class EventHandler(pyinotify.ProcessEvent):
     def my_init(self, *, file_path, plugin):  # pylint: disable=arguments-differ
         self.file_path = file_path
         self.plugin = plugin
+        self.position = 0
         self.watch_manager = pyinotify.WatchManager()
         mask = (
             # pylint: disable=no-member
@@ -39,6 +40,7 @@ class EventHandler(pyinotify.ProcessEvent):
             if self.file_path.closed:
                 self.file_path = open(self.file_path.name, "r", encoding="utf-8")
             self.file_path.seek(0, os.SEEK_END)
+            self.position = self.file_path.tell()
         except FileNotFoundError:
             log.warning("File not found during initialization: %s", self.file_path.name)
 
@@ -77,9 +79,15 @@ class EventHandler(pyinotify.ProcessEvent):
         if event.pathname == self.file_path.name:
             self.check_for_truncation()
 
-            lines = self.file_path.readlines()
-            for line in lines:
-                self.process_line(line)
+            new_lines = self.file_path.read()
+            last_n = new_lines.rfind("\n")
+            if last_n >= 0:
+                self.position += last_n + 1
+                for line in new_lines[:last_n].split("\n"):
+                    self.process_line(line)
+            else:
+                log.debug("no line")
+            self.file_path.seek(self.position)
 
     def process_default(self, event):
         log.debug("Unhandled event: %s", event.maskname)
