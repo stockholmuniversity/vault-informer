@@ -7,9 +7,9 @@ license = "BSD-3-Clause"
 include = [{ path = "vault_informer" }]
 
 [tool.poetry.dependencies]
-python = ">=3.5.2"
+python = "^3.6"
 pyinotify = "^0.9.6"
-stomp-py  = { version = "^4.1", optional = true }
+stomp-py  = { version = "^7", optional = true }
 
 [tool.poetry.dev-dependencies]
 isort = "^4.3.21"
